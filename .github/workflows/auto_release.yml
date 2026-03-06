@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  build:
     name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -37,11 +37,28 @@ jobs:
         run: |
           mv target/release/${{ matrix.artifact_name }} target/release/${{ matrix.asset_name }}
 
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: target/release/${{ matrix.asset_name }}
+
+  release:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true 
+
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.sha }}
-          name: "(${{ github.sha }})"
-          files: target/release/${{ matrix.asset_name }}
+          name: "Build (${{ github.sha }})"
+          files: artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
